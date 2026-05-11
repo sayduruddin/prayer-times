@@ -50,8 +50,6 @@ public class SolarPosition {
         return trueLongitude;
     }
 
-    // TODO: calculate the declination and equation of time
-
     public static double calculateObliquity(double julianCentury) {
         double meanObliquityForJ2000Epoch = 23.439291111;
         // the rate of change is the degree of tilt change per Julian Century

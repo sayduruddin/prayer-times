@@ -24,8 +24,8 @@ public class PrayerTimeCalculatorTest {
 //        double latitude = 53.8684021;
         double latitude = 53.8675;
         double actualLongitude = -1.9069;
-        // TODO: add in a function that calculates JD for you
-        double T = SolarPosition.calculateJulianCentury(2461165.5);
+        double julianDay = JulianDate.calculateJulianDay(2026, 5, 5); // should be 2461165.5
+        double T = SolarPosition.calculateJulianCentury(julianDay);
 
         double obliquity = SolarPosition.calculateObliquity(T);
         double meanLongitude = SolarPosition.calculateMeanLongitude(T);
@@ -41,9 +41,7 @@ public class PrayerTimeCalculatorTest {
 
 
         double result = PrayerTimeCalculator.calculateHourAngle(sunriseAngle, latitude, declination);
-//        assertEquals(114.24957096919297, result, 1e-5);
-
-//        double actualLongitude = -1.9078;
+        assertEquals(115.05663895742978, result, 1e-5);
 
         // mean longitude required for equation of time.
         double EqT = SolarPosition.calculateEquationOfTime(T, obliquity, meanAnomaly, meanLongitude);
@@ -52,21 +50,20 @@ public class PrayerTimeCalculatorTest {
         double offsetFromSolarNoon = result * 4;
         double sunriseInMinutes = solarNoon - offsetFromSolarNoon;
 
-        System.out.println(PrayerTimeCalculator.formatMinutesToTime(sunriseInMinutes));
-        System.out.println("T: " + T);
-        System.out.println("Mean Longitude: " + meanLongitude);
-        System.out.println("Mean Anomaly: " + meanAnomaly);
-        System.out.println("Obliquity: " + obliquity);
-        System.out.println("Omega: " + omega);
-        System.out.println("Apparent Longitude: " + SolarPosition.calculateApparentLongitude(meanLongitude, omega));
-        System.out.println("Declination: " + declination);
-        System.out.println("EqT: " + EqT);
-        System.out.println("Solar Noon UTC minutes: " + solarNoon);
-        System.out.println("Solar Noon UTC: " + PrayerTimeCalculator.formatMinutesToTime(solarNoon));
-        System.out.println("Hour Angle: " + result);
-        System.out.println("Offset minutes: " + (result * 4));
-        System.out.println("Sunrise UTC minutes: " + sunriseInMinutes);
-        System.out.println("Sunrise UTC: " + PrayerTimeCalculator.formatMinutesToTime(sunriseInMinutes));
+        System.out.println("Sunrise for 5th May 2026 BST: " + PrayerTimeCalculator.formatMinutesToTime(sunriseInMinutes + 60));
+
+        double maghribInMinutes = solarNoon + offsetFromSolarNoon;
+//        System.out.println("Solar noon and eqt: " + PrayerTimeCalculator.formatMinutesToTime(solarNoon) + " " + EqT);
+        System.out.println("Maghrib time for 5th May 2026 BST: " + PrayerTimeCalculator.formatMinutesToTime(maghribInMinutes + 60));
+
+        double fajrH = PrayerTimeCalculator.calculateHourAngle(-18, latitude, declination);
+        double fajrInMinutes = solarNoon - (fajrH * 4);
+        System.out.println("Fajr time for 5th May 2026 BST: " + PrayerTimeCalculator.formatMinutesToTime(fajrInMinutes + 60));
+
+        double ishaH = PrayerTimeCalculator.calculateHourAngle(-15, latitude, declination);
+        double ishaInMinutes = solarNoon + ( ishaH * 4);
+        System.out.println("Isha time for 5th May 2026 BST: " + PrayerTimeCalculator.formatMinutesToTime(ishaInMinutes + 60));
+
     }
 
 }
