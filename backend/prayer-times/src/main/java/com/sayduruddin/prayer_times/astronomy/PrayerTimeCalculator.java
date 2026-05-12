@@ -38,7 +38,7 @@ public class PrayerTimeCalculator {
         *   the sun never reaches below 18 or 15 below the horizon in the summer, which is why
         *   we never get pitch black nights, we stay in a gray twilight.
         *   when the code detects the H is not a number which will
-        *   mean we need to do one of 3 methods to determine the isha and fajr prayer times.
+        *   mean we need to do one of the  methods to determine the isha and fajr prayer times.
         *
         *   1. the 1/7th rule: we divide the total time between Sunset and Sunrise into 7 equal parts
         *       Isha = Sunset + (1/7th of the night)
@@ -52,9 +52,28 @@ public class PrayerTimeCalculator {
         *       we just freeze the Fajr and Isha times at that value until the Sun starts hitting
         *       those angles again.
         *
+        *   4. we use a proportion of the night duration based on the angle
+        *       nightDuration = sunset - sunrise
+        *       fajrPortion = fajrAngle / 60
+        *       fajr = sunrise - (fajrPortion * nightDuration)
+        *
+        *   will need to expose the above options as a user choice so they can decide, Wifaqul Ulama use 1/7th rule
+        *   UK Islamic Mission use Angle based rule
+        *   Hikmah Way use 1/7th rule.
+        *
         *
 
         * */
+
+    public static double calculateAsrAngle(double latitude, double declination, int shadowRatio) {
+        // asrAngle = -arcTan(1 / shadowRatio + tan(|latitude - declination|))
+        double absoluteDifference = Math.abs(latitude - declination);
+        double differenceRad = Math.toRadians(absoluteDifference);
+
+        double calculation = 1.0 / (shadowRatio + Math.tan(differenceRad));
+
+        return Math.toDegrees((Math.atan(calculation)));
+    }
 
     public static String formatMinutesToTime(double minutes) {
         long totalMinutes = (Math.round(minutes) + 1440) % 1440;

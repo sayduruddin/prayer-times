@@ -64,6 +64,16 @@ public class PrayerTimeCalculatorTest {
         double ishaInMinutes = solarNoon + ( ishaH * 4);
         System.out.println("Isha time for 5th May 2026 BST: " + PrayerTimeCalculator.formatMinutesToTime(ishaInMinutes + 60));
 
+        double asrAngle = PrayerTimeCalculator.calculateAsrAngle(latitude, declination, 2);
+        double asrH = PrayerTimeCalculator.calculateHourAngle(asrAngle, latitude, declination);
+        double asrInMinutes = solarNoon + ( asrH * 4 );
+        System.out.println("Asr time for 5th May 2026 BST: " + PrayerTimeCalculator.formatMinutesToTime(asrInMinutes + 60));
+
+//        System.out.println("Asr angle: " + asrAngle);
+//        System.out.println("Asr H: " + asrH);
+//        System.out.println("Asr offset minutes: " + (asrH * 4));
+//        System.out.println("Solar noon: " + solarNoon);
+//        System.out.println("Asr raw UTC minutes: " + asrInMinutes);
     }
 
 }
