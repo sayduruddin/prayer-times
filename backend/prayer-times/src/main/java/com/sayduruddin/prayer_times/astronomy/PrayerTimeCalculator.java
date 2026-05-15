@@ -71,7 +71,6 @@ public class PrayerTimeCalculator {
     public static double applyAngleBasedRule(double sunrise, double sunset, double angle, boolean isMorning) {
         // night spans across midnight, goes from sunset to sunrise the next day.
         double nightDuration = sunrise + (1440 - sunset);
-        System.out.println("night duration: " + nightDuration);
 
         // this converts the prayer angle into a fraction of the night to use as the offset
         // dividing by 60 gives us the proportion of the night to use

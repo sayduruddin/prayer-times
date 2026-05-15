@@ -30,7 +30,7 @@ public class PrayerTimesService {
         }
 
         ZoneOffset offset = date.atStartOfDay(zoneId.get()).getOffset();
-        System.out.println("Zone offset: " + offset + " offset in mins: " + offset.getTotalSeconds() / 60 + " offset in secs: " + offset.getTotalSeconds());
+//        System.out.println("Zone offset: " + offset + " offset in mins: " + offset.getTotalSeconds() / 60 + " offset in secs: " + offset.getTotalSeconds());
 
         return offset.getTotalSeconds() / 60;
     }
@@ -62,46 +62,38 @@ public class PrayerTimesService {
         int day = date.getDayOfMonth();
 
         SolarPositionData solarData = calculateSolarPositionData(year, month, day);
-//        System.out.println("Values passed in " + actualLatitude + " " + actualLongitude + " " + shadowRatio);
-//        System.out.println("Solar data T: " + solarData.julianCentury() + " solar data eqt: " + solarData.equationOfTime());
 
         double solarNoon = PrayerTimeCalculator.calculateSolarNoon(solarData.equationOfTime(), actualLongitude);
-//        System.out.println("Got solar noon as: " + PrayerTimeCalculator.formatMinutesToTime(solarNoon));
 
         // calculate sunrise and sunset first
         double sunriseHourAngle = PrayerTimeCalculator.calculateHourAngle(-0.833, actualLatitude, solarData.declination());
         double sunrise = solarNoon - (sunriseHourAngle * 4);
         double sunset = solarNoon + (sunriseHourAngle * 4);
-//        System.out.println("sunrise hour angle: " + sunriseHourAngle + " sunrise: " + PrayerTimeCalculator.formatMinutesToTime(sunrise) + " sunset: " + PrayerTimeCalculator.formatMinutesToTime(sunset));
 
         double fajrHourAngle = PrayerTimeCalculator.calculateHourAngle(-18, actualLatitude, solarData.declination());
         double fajrTime;
         if (Double.isNaN(fajrHourAngle)) {
-//            System.out.println("fajr hour angle is NaN, applying angle based rule");
             fajrTime = PrayerTimeCalculator.applyAngleBasedRule(sunrise, sunset, 18.0, true);
         } else {
             fajrTime = solarNoon - ( fajrHourAngle * 4); // multiply by 4 to convert degrees of rotation into minutes of time
         }
 
-//        System.out.println("Fajr time in minutes: " + fajrTime);
+        double asrAngle = PrayerTimeCalculator.calculateAsrAngle(actualLatitude, solarData.declination(), shadowRatio);
+        double asrHourAngle = PrayerTimeCalculator.calculateHourAngle(asrAngle, actualLatitude, solarData.declination());
+        double asrTime = solarNoon + ( asrHourAngle * 4);
 
         // depending on the timezone the location is in, will need to add this to the actual UTC calculated times
-        int offsetMinutes = getTimeZoneOffsetInMinutes(actualLatitude, actualLongitude, date);
+        int timeZoneOffsetInMinutes = getTimeZoneOffsetInMinutes(actualLatitude, actualLongitude, date);
 
-        System.out.println("Declination: " + solarData.declination());
-        System.out.println("Solar noon: " + solarNoon);
-        System.out.println("Sunrise H: " + sunriseHourAngle);
-        System.out.println("Sunrise UTC minutes: " + sunrise);
-        System.out.println("Sunset UTC minutes: " + sunset);
-        System.out.println("Night duration: " + (sunrise + (1440 - sunset)));
-        System.out.println("Fajr portion: " + (18.0 / 60.0));
-        System.out.println("Fajr offset: " + ((18.0 / 60.0) * (sunrise + (1440 - sunset))));
-        System.out.println("Fajr raw UTC: " + fajrTime);
+        // TODO: calculate Isha time, will need to add in another high latitude option as Fajr is currently around 35 mins off local masjid
 
-        String fajrUTC = PrayerTimeCalculator.formatMinutesToTime(fajrTime);
-        String sunriseUTC = PrayerTimeCalculator.formatMinutesToTime(sunrise);
-        String maghribUTC = PrayerTimeCalculator.formatMinutesToTime(sunset);
+        double prayerTimeOffset = 2.0;
+        String fajrClockTime = PrayerTimeCalculator.formatMinutesToTime(fajrTime + timeZoneOffsetInMinutes);
+        String sunriseClockTime = PrayerTimeCalculator.formatMinutesToTime(sunrise + timeZoneOffsetInMinutes);
+        String dhuhrClockTime = PrayerTimeCalculator.formatMinutesToTime(solarNoon + timeZoneOffsetInMinutes + prayerTimeOffset);
+        String maghribClockTime = PrayerTimeCalculator.formatMinutesToTime(sunset + timeZoneOffsetInMinutes + prayerTimeOffset);
+        String asrClockTime = PrayerTimeCalculator.formatMinutesToTime(asrTime + timeZoneOffsetInMinutes + prayerTimeOffset);
 
-        return new PrayerTimesResponse(fajrUTC, sunriseUTC, "00:00", "00:00", maghribUTC, "00:00");
+        return new PrayerTimesResponse(fajrClockTime, sunriseClockTime, dhuhrClockTime, asrClockTime, maghribClockTime, "00:00");
     }
 }
