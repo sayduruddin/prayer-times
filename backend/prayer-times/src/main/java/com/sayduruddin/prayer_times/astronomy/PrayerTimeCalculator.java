@@ -21,6 +21,9 @@ public class PrayerTimeCalculator {
         double denominator = Math.cos(latRad) * Math.cos(declinationRad);
 
         double cosH = numerator / denominator;
+        if (cosH > 1 || cosH < -1) {
+            return Double.NaN;
+        }
 
         // need to add a guard for if cosH is greater than 1 or less than -1, see below multi line comment
         // TODO: implement the guard and use the rules for when in a high latitude location.
@@ -64,6 +67,22 @@ public class PrayerTimeCalculator {
         *
 
         * */
+
+    public static double applyAngleBasedRule(double sunrise, double sunset, double angle, boolean isMorning) {
+        // night spans across midnight, goes from sunset to sunrise the next day.
+        double nightDuration = sunrise + (1440 - sunset);
+        System.out.println("night duration: " + nightDuration);
+
+        // this converts the prayer angle into a fraction of the night to use as the offset
+        // dividing by 60 gives us the proportion of the night to use
+        // for Fajr, at an angle of 18 it would be 18 / 60 = 0.3, so fajr is 30% of the night duration before sunrise
+        // isha will be 15 / 60 = 0.25, so 25% of the night duration after sunset
+        double portion = Math.abs(angle) / 60.0;
+
+        double offset = portion * nightDuration;
+
+        return (isMorning) ? sunrise - offset : sunrise + offset;
+    }
 
     public static double calculateAsrAngle(double latitude, double declination, int shadowRatio) {
         // asrAngle = -arcTan(1 / shadowRatio + tan(|latitude - declination|))
