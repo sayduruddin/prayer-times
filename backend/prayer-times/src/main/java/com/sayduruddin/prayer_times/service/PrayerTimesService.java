@@ -1,9 +1,6 @@
 package com.sayduruddin.prayer_times.service;
 
-import com.sayduruddin.prayer_times.astronomy.JulianDate;
-import com.sayduruddin.prayer_times.astronomy.PrayerTimeCalculator;
-import com.sayduruddin.prayer_times.astronomy.SolarPosition;
-import com.sayduruddin.prayer_times.astronomy.SolarPositionData;
+import com.sayduruddin.prayer_times.astronomy.*;
 import net.iakovlev.timeshape.TimeZoneEngine;
 import org.springframework.stereotype.Service;
 
@@ -30,9 +27,15 @@ public class PrayerTimesService {
         }
 
         ZoneOffset offset = date.atStartOfDay(zoneId.get()).getOffset();
-//        System.out.println("Zone offset: " + offset + " offset in mins: " + offset.getTotalSeconds() / 60 + " offset in secs: " + offset.getTotalSeconds());
 
         return offset.getTotalSeconds() / 60;
+    }
+
+    private double applyHighLatitudeRule(double sunrise, double sunset, double angle, boolean isMorning, HighLatitudeRule rule) {
+        return switch (rule) {
+            case ANGLE_BASED -> PrayerTimeCalculator.applyAngleBasedRule(sunrise, sunset, angle, isMorning);
+            case SEVENTH_OF_NIGHT -> PrayerTimeCalculator.applySeventhOfNight(sunrise, sunset, isMorning);
+        };
     }
 
     public SolarPositionData calculateSolarPositionData(int year, int month, int day) {
@@ -55,8 +58,7 @@ public class PrayerTimesService {
         return new SolarPositionData(JD, julianCentury, obliquity, meanLongitude, omega, meanAnomaly, equationOfCentre, trueLongitude, apparentLongitude, declination, equationOfTime);
     };
 
-    // service methods called by controller
-    public PrayerTimesResponse getCalculatedTimes(LocalDate date, double actualLatitude, double actualLongitude, int shadowRatio) {
+    public PrayerTimesResponse getCalculatedTimes(LocalDate date, double actualLatitude, double actualLongitude, int shadowRatio, HighLatitudeRule highLatitudeRule, double fajrAngle, double ishaAngle) {
         int year = date.getYear();
         int month = date.getMonthValue();
         int day = date.getDayOfMonth();
@@ -65,27 +67,30 @@ public class PrayerTimesService {
 
         double solarNoon = PrayerTimeCalculator.calculateSolarNoon(solarData.equationOfTime(), actualLongitude);
 
-        // calculate sunrise and sunset first
         double sunriseHourAngle = PrayerTimeCalculator.calculateHourAngle(-0.833, actualLatitude, solarData.declination());
         double sunrise = solarNoon - (sunriseHourAngle * 4);
         double sunset = solarNoon + (sunriseHourAngle * 4);
 
-        double fajrHourAngle = PrayerTimeCalculator.calculateHourAngle(-18, actualLatitude, solarData.declination());
-        double fajrTime;
-        if (Double.isNaN(fajrHourAngle)) {
-            fajrTime = PrayerTimeCalculator.applyAngleBasedRule(sunrise, sunset, 18.0, true);
-        } else {
-            fajrTime = solarNoon - ( fajrHourAngle * 4); // multiply by 4 to convert degrees of rotation into minutes of time
-        }
+        double fajrHourAngle = PrayerTimeCalculator.calculateHourAngle(-fajrAngle, actualLatitude, solarData.declination());
+        boolean fajrHighLatitude = Double.isNaN(fajrHourAngle) || fajrHourAngle > 150;
+        double fajrTime = fajrHighLatitude ? applyHighLatitudeRule(sunrise, sunset, fajrAngle, true, highLatitudeRule) : solarNoon - ( fajrHourAngle * 4);
 
         double asrAngle = PrayerTimeCalculator.calculateAsrAngle(actualLatitude, solarData.declination(), shadowRatio);
         double asrHourAngle = PrayerTimeCalculator.calculateHourAngle(asrAngle, actualLatitude, solarData.declination());
         double asrTime = solarNoon + ( asrHourAngle * 4);
 
+        double ishaHourAngle = PrayerTimeCalculator.calculateHourAngle(-ishaAngle, actualLatitude, solarData.declination());
+        boolean ishaHighLatitude = Double.isNaN(ishaHourAngle) || ishaHourAngle > 150;
+        double ishaTime = ishaHighLatitude ? applyHighLatitudeRule(sunrise, sunset, ishaAngle, false, highLatitudeRule) : solarNoon + ( ishaHourAngle * 4);;
+
+        System.out.println("Isha H: " + ishaHourAngle);
+        System.out.println("Isha raw UTC minutes: " + ishaTime);
+        System.out.println("Is high latitude triggered: " + Double.isNaN(ishaHourAngle));
+
         // depending on the timezone the location is in, will need to add this to the actual UTC calculated times
         int timeZoneOffsetInMinutes = getTimeZoneOffsetInMinutes(actualLatitude, actualLongitude, date);
 
-        // TODO: calculate Isha time, will need to add in another high latitude option as Fajr is currently around 35 mins off local masjid
+        // TODO: research other high latitude rules and implement them
 
         double prayerTimeOffset = 2.0;
         String fajrClockTime = PrayerTimeCalculator.formatMinutesToTime(fajrTime + timeZoneOffsetInMinutes);
@@ -93,7 +98,8 @@ public class PrayerTimesService {
         String dhuhrClockTime = PrayerTimeCalculator.formatMinutesToTime(solarNoon + timeZoneOffsetInMinutes + prayerTimeOffset);
         String maghribClockTime = PrayerTimeCalculator.formatMinutesToTime(sunset + timeZoneOffsetInMinutes + prayerTimeOffset);
         String asrClockTime = PrayerTimeCalculator.formatMinutesToTime(asrTime + timeZoneOffsetInMinutes + prayerTimeOffset);
+        String ishaClockTime = PrayerTimeCalculator.formatMinutesToTime(ishaTime + timeZoneOffsetInMinutes + prayerTimeOffset);
 
-        return new PrayerTimesResponse(fajrClockTime, sunriseClockTime, dhuhrClockTime, asrClockTime, maghribClockTime, "00:00");
+        return new PrayerTimesResponse(fajrClockTime, sunriseClockTime, dhuhrClockTime, asrClockTime, maghribClockTime, ishaClockTime);
     }
 }

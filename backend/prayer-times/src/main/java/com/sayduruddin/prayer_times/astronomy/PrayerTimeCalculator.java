@@ -80,7 +80,17 @@ public class PrayerTimeCalculator {
 
         double offset = portion * nightDuration;
 
-        return (isMorning) ? sunrise - offset : sunrise + offset;
+        return (isMorning) ? sunrise - offset : sunset + offset;
+    }
+
+    public static double applySeventhOfNight(double sunrise, double sunset, boolean isMorning) {
+        double nightDuration = sunrise + (1440 - sunset);
+        double seventh = nightDuration / 7;
+        if (isMorning) {
+            return sunrise - seventh;
+        } else {
+            return sunset + seventh;
+        }
     }
 
     public static double calculateAsrAngle(double latitude, double declination, int shadowRatio) {

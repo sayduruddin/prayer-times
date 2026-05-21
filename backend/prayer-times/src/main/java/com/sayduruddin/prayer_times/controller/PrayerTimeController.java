@@ -1,5 +1,6 @@
 package com.sayduruddin.prayer_times.controller;
 
+import com.sayduruddin.prayer_times.astronomy.HighLatitudeRule;
 import com.sayduruddin.prayer_times.service.PrayerTimesResponse;
 import com.sayduruddin.prayer_times.service.PrayerTimesService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +26,13 @@ public class PrayerTimeController {
     @GetMapping("/today")
     public PrayerTimesResponse getPrayerTimesToday(@RequestParam double latitude,
                                                    @RequestParam double longitude,
-                                                   @RequestParam int shadowRatio
+                                                   @RequestParam int shadowRatio,
+                                                   @RequestParam LocalDate date,
+                                                   @RequestParam(defaultValue = "ANGLE_BASED") HighLatitudeRule highLatitudeRule,
+                                                   @RequestParam(defaultValue = "18.0") double fajrAngle,
+                                                   @RequestParam(defaultValue = "15.0") double ishaAngle
                                                    ) {
-        return prayerTimesService.getCalculatedTimes(LocalDate.now(), latitude, longitude, shadowRatio);
+        LocalDate resolvedDate = date != null ? date : LocalDate.now();
+        return prayerTimesService.getCalculatedTimes(resolvedDate, latitude, longitude, shadowRatio, highLatitudeRule, fajrAngle, ishaAngle);
     }
 }
